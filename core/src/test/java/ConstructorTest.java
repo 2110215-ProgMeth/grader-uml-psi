@@ -258,12 +258,9 @@ public class ConstructorTest {
 
     @Test
     void testMultipleConstructors() throws Exception {
-        String javaCode = "public class Test {\n" +
-                "    public Test() {}\n" +
-                "    public Test(String name) {}\n" +
-                "    private Test(int id) {}\n" +
-                "    protected Test(String name, int id) throws Exception {}\n" +
-                "}";
+        String javaCode = "public class Test {\n" + "    public Test() {}\n" + "    public Test(String name) {}\n"
+                + "    private Test(int id) {}\n" + "    protected Test(String name, int id) throws Exception {}\n"
+                + "}";
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path outputFile = tempDir.resolve("output.json");
 
@@ -334,12 +331,8 @@ public class ConstructorTest {
 
     @Test
     void testConstructorWithCustomObjectParameter() throws Exception {
-        String javaCode = "class Address {\n" +
-                "    String street;\n" +
-                "}\n" +
-                "public class Person {\n" +
-                "    public Person(Address address) {}\n" +
-                "}";
+        String javaCode = "class Address {\n" + "    String street;\n" + "}\n" + "public class Person {\n"
+                + "    public Person(Address address) {}\n" + "}";
         File inputFile = createTempJavaFile("Person.java", javaCode);
         Path outputFile = tempDir.resolve("output.json");
 

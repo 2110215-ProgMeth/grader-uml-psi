@@ -94,9 +94,7 @@ public class StructureExtractor {
                 if (typesArray.size() == 1) {
                     output = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(typesArray.get(0));
                 } else {
-                    TypeDeclaration<?> mainType = cu.getTypes().stream()
-                            .filter(TypeDeclaration::isPublic)
-                            .findFirst()
+                    TypeDeclaration<?> mainType = cu.getTypes().stream().filter(TypeDeclaration::isPublic).findFirst()
                             .orElse(cu.getTypes().get(cu.getTypes().size() - 1));
                     ObjectNode mainTypeNode = null;
                     for (int i = 0; i < typesArray.size(); i++) {
@@ -156,8 +154,7 @@ public class StructureExtractor {
         }
         typeSolver.add(new ReflectionTypeSolver());
         StaticJavaParser.getParserConfiguration().setSymbolResolver(new JavaSymbolSolver(typeSolver));
-        StaticJavaParser.getParserConfiguration()
-                .setLanguageLevel(LanguageLevel.JAVA_17);
+        StaticJavaParser.getParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_17);
     }
 
     private static ObjectNode extractTypeStructure(TypeDeclaration<?> typeDecl, ObjectMapper mapper) {
@@ -189,14 +186,10 @@ public class StructureExtractor {
         typeNode.put("final", explicitFinal || implicitFinal);
         boolean isNested = typeDecl.getParentNode().filter(n -> n instanceof TypeDeclaration).isPresent();
         boolean explicitStatic = typeDecl.hasModifier(Modifier.Keyword.STATIC);
-        boolean implicitStatic = (isInterface)
-                || typeDecl.isEnumDeclaration()
-                || typeDecl.isAnnotationDeclaration()
+        boolean implicitStatic = (isInterface) || typeDecl.isEnumDeclaration() || typeDecl.isAnnotationDeclaration()
                 || typeDecl.isRecordDeclaration()
-                || typeDecl.getParentNode()
-                        .filter(n -> n instanceof ClassOrInterfaceDeclaration
-                                && ((ClassOrInterfaceDeclaration) n).isInterface())
-                        .isPresent();
+                || typeDecl.getParentNode().filter(n -> n instanceof ClassOrInterfaceDeclaration
+                        && ((ClassOrInterfaceDeclaration) n).isInterface()).isPresent();
         typeNode.put("static", explicitStatic || (isNested && implicitStatic));
 
         ArrayNode extendsNode = mapper.createArrayNode();

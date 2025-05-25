@@ -14,10 +14,10 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ArgsTest {
-    
+
     @TempDir
     Path tempDir;
-    
+
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
@@ -38,7 +38,7 @@ public class ArgsTest {
 
     @Test
     void testNoArguments() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] {}));
         assertTrue(errContent.toString().contains("Usage: java -jar structure.jar"));
     }
 
@@ -55,92 +55,95 @@ public class ArgsTest {
 
     @Test
     void testOutputArgumentAlone() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-o"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-o" }));
         assertTrue(errContent.toString().contains("Error: -o requires a filename"));
     }
 
     @Test
     void testOutputArgumentWithEmptyFilename() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-o", ""}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-o", "" }));
         assertTrue(errContent.toString().contains("Error: No input file specified"));
     }
 
     @Test
     void testOutputArgumentWithWhitespaceFilename() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-o", "   "}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-o", "   " }));
         assertTrue(errContent.toString().contains("Error: No input file specified"));
     }
 
     @Test
     void testTrueFlagAlone() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-t"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-t" }));
         assertTrue(errContent.toString().contains("Error: No input file specified"));
     }
 
     @Test
     void testMultipleTrueFlags() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-t", "-t", "-t"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-t", "-t", "-t" }));
         assertTrue(errContent.toString().contains("Error: No input file specified"));
     }
 
     @Test
     void testOutputAndTrueFlagWithoutInput() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-o", "test.json", "-t"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-o", "test.json", "-t" }));
         assertTrue(errContent.toString().contains("Error: No input file specified"));
     }
 
     @Test
     void testTrueFlagAndOutputWithoutInput() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-t", "-o", "test.json"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-t", "-o", "test.json" }));
         assertTrue(errContent.toString().contains("Error: No input file specified"));
     }
 
     @Test
     void testNonExistentInputFile() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"nonexistent.java"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "nonexistent.java" }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testNonExistentInputFileWithOutput() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-o", "out.json", "nonexistent.java"}));
+        assertThrows(SecurityException.class,
+                () -> StructureExtractor.main(new String[] { "-o", "out.json", "nonexistent.java" }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testNonExistentInputFileWithTrueFlag() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-t", "nonexistent.java"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "-t", "nonexistent.java" }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testNonExistentInputFileWithAllFlags() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"-o", "out.json", "-t", "nonexistent.java"}));
+        assertThrows(SecurityException.class,
+                () -> StructureExtractor.main(new String[] { "-o", "out.json", "-t", "nonexistent.java" }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testDirectoryAsInput() throws Exception {
         File directory = tempDir.toFile();
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{directory.getAbsolutePath()}));
+        assertThrows(SecurityException.class,
+                () -> StructureExtractor.main(new String[] { directory.getAbsolutePath() }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testEmptyFilenameAsInput() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{""}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "" }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testWhitespaceFilenameAsInput() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"   "}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "   " }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
     @Test
     void testSpecialCharactersInFilename() {
-        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[]{"file@#$%^&*().java"}));
+        assertThrows(SecurityException.class, () -> StructureExtractor.main(new String[] { "file@#$%^&*().java" }));
         assertTrue(errContent.toString().contains("Error: Input file not found"));
     }
 
@@ -148,9 +151,9 @@ public class ArgsTest {
     void testValidInputWithDefaultOutput() throws Exception {
         String javaCode = "public class Test {}";
         File inputFile = createTempJavaFile("Test.java", javaCode);
-        
-        StructureExtractor.main(new String[]{inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { inputFile.getAbsolutePath() });
+
         Path defaultOutput = Path.of("output.json");
         assertTrue(Files.exists(defaultOutput));
         Files.deleteIfExists(defaultOutput);
@@ -161,9 +164,9 @@ public class ArgsTest {
         String javaCode = "public class Test {}";
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path outputFile = tempDir.resolve("custom.json");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
         JsonNode result = mapper.readTree(Files.readString(outputFile));
         assertEquals("Test", result.get("name").asText());
@@ -174,9 +177,9 @@ public class ArgsTest {
         String javaCode = "public class Test { private boolean flag; }";
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path outputFile = tempDir.resolve("output.json");
-        
-        StructureExtractor.main(new String[]{"-t", "-o", outputFile.toString(), inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-t", "-o", outputFile.toString(), inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
         JsonNode result = mapper.readTree(Files.readString(outputFile));
         assertTrue(result.get("public").asBoolean());
@@ -188,9 +191,9 @@ public class ArgsTest {
         String javaCode = "public class Test { private boolean flag; }";
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path outputFile = tempDir.resolve("output.json");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), "-t", inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), "-t", inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
         JsonNode result = mapper.readTree(Files.readString(outputFile));
         assertTrue(result.get("public").asBoolean());
@@ -204,19 +207,19 @@ public class ArgsTest {
         Path outputFile1 = tempDir.resolve("output1.json");
         Path outputFile2 = tempDir.resolve("output2.json");
         Path outputFile3 = tempDir.resolve("output3.json");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile1.toString(), "-t", inputFile.getAbsolutePath()});
-        StructureExtractor.main(new String[]{"-t", "-o", outputFile2.toString(), inputFile.getAbsolutePath()});
-        StructureExtractor.main(new String[]{inputFile.getAbsolutePath(), "-o", outputFile3.toString(), "-t"});
-        
+
+        StructureExtractor.main(new String[] { "-o", outputFile1.toString(), "-t", inputFile.getAbsolutePath() });
+        StructureExtractor.main(new String[] { "-t", "-o", outputFile2.toString(), inputFile.getAbsolutePath() });
+        StructureExtractor.main(new String[] { inputFile.getAbsolutePath(), "-o", outputFile3.toString(), "-t" });
+
         assertTrue(Files.exists(outputFile1));
         assertTrue(Files.exists(outputFile2));
         assertTrue(Files.exists(outputFile3));
-        
+
         String content1 = Files.readString(outputFile1);
         String content2 = Files.readString(outputFile2);
         String content3 = Files.readString(outputFile3);
-        
+
         assertEquals(content1, content2);
         assertEquals(content2, content3);
     }
@@ -226,9 +229,9 @@ public class ArgsTest {
         String javaCode = "public class Test {}";
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path outputFile = tempDir.resolve("output.json");
-        
-        StructureExtractor.main(new String[]{"-invalid", "-o", outputFile.toString(), inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-invalid", "-o", outputFile.toString(), inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
         JsonNode result = mapper.readTree(Files.readString(outputFile));
         assertEquals("Test", result.get("name").asText());
@@ -240,9 +243,9 @@ public class ArgsTest {
         String javaCode = "public class " + "A".repeat(200) + " {}";
         File inputFile = createTempJavaFile(longName, javaCode);
         Path outputFile = tempDir.resolve("output.json");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
     }
 
@@ -252,9 +255,9 @@ public class ArgsTest {
         String javaCode = "public class UnicodeTest {}";
         File inputFile = createTempJavaFile(unicodeName, javaCode);
         Path outputFile = tempDir.resolve("output.json");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
         JsonNode result = mapper.readTree(Files.readString(outputFile));
         assertEquals("UnicodeTest", result.get("name").asText());
@@ -266,9 +269,9 @@ public class ArgsTest {
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path nonExistentDir = tempDir.resolve("nonexistent");
         Path outputFile = nonExistentDir.resolve("output.json");
-        
-        assertThrows(SecurityException.class, () -> 
-            StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile.getAbsolutePath()}));
+
+        assertThrows(SecurityException.class, () -> StructureExtractor
+                .main(new String[] { "-o", outputFile.toString(), inputFile.getAbsolutePath() }));
     }
 
     @Test
@@ -276,9 +279,9 @@ public class ArgsTest {
         String javaCode = "public class Test {}";
         File inputFile = createTempJavaFile("Test.java", javaCode);
         Path outputFile = tempDir.resolve("output_no_ext");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile.getAbsolutePath()});
-        
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), inputFile.getAbsolutePath() });
+
         assertTrue(Files.exists(outputFile));
         JsonNode result = mapper.readTree(Files.readString(outputFile));
         assertEquals("Test", result.get("name").asText());
@@ -291,12 +294,12 @@ public class ArgsTest {
         File inputFile1 = createTempJavaFile("Test1.java", javaCode1);
         File inputFile2 = createTempJavaFile("Test2.java", javaCode2);
         Path outputFile = tempDir.resolve("output.json");
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile1.getAbsolutePath()});
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), inputFile1.getAbsolutePath() });
         JsonNode result1 = mapper.readTree(Files.readString(outputFile));
         assertEquals("Test1", result1.get("name").asText());
-        
-        StructureExtractor.main(new String[]{"-o", outputFile.toString(), inputFile2.getAbsolutePath()});
+
+        StructureExtractor.main(new String[] { "-o", outputFile.toString(), inputFile2.getAbsolutePath() });
         JsonNode result2 = mapper.readTree(Files.readString(outputFile));
         assertEquals("Test2", result2.get("name").asText());
     }
