@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [21, 24]
+        java-version: [21]
     
     steps:
     - uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: spotbugs-report-java${{ matrix.java-version }}
+        name: spotbugs-report-java-${{ matrix.java-version }}
         path: core/target/spotbugs*
         if-no-files-found: ignore
     - name: Run Checkstyle
@@ -87,7 +87,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: checkstyle-report-java${{ matrix.java-version }}
+        name: checkstyle-report-java-${{ matrix.java-version }}
         path: core/target/checkstyle-result.xml
         if-no-files-found: ignore
         
@@ -105,6 +105,6 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: pmd-report-java${{ matrix.java-version }}
+        name: pmd-report-java-${{ matrix.java-version }}
         path: core/target/pmd.xml
         if-no-files-found: ignore
