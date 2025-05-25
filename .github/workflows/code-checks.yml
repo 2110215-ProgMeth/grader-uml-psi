@@ -9,19 +9,33 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java-version: [21]
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up JDK 21
+    - name: Set up JDK ${{ matrix.java-version }}
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
-        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
     
     - name: Build
       run: mvn clean compile assembly:single
+      working-directory: ./core
+
+    - name: Check code format
+      run: mvn spotless:check
       working-directory: ./core
     
     - name: Run SpotBugs
@@ -35,3 +49,36 @@ jobs:
       with:
         name: spotbugs-report
         path: core/target/spotbugs*
+
+    - name: Run Checkstyle
+      run: mvn checkstyle:check
+      working-directory: ./core
+
+    - name: Upload Checkstyle report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: checkstyle-report
+        path: core/target/checkstyle-result.xml
+
+    - name: Run PMD
+      run: mvn pmd:check
+      working-directory: ./core
+
+    - name: Upload PMD report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pmd-report
+        path: core/target/pmd.xml
+
+    - name: Generate code coverage report
+      run: mvn jacoco:report
+      working-directory: ./core
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: jacoco-report
+        path: core/target/site/jacoco
