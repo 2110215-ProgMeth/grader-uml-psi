@@ -30,30 +30,25 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
 
-    - name: Run tests and generate coverage
-      run: mvn clean test jacoco:report
+    - name: Run tests
+      run: mvn clean test
       working-directory: ./core
 
-    - name: Generate test report
+    - name: Combine test summaries
       if: success() || failure()
       run: |
-        mkdir -p target/surefire-reports
-        find target/surefire-reports -type f -name '*.xml' || echo "No test reports found"
-      working-directory: ./core
+        mkdir -p core/target/surefire-reports
+        COMBINED=core/target/surefire-reports/test-summary-${{ matrix.java-version }}.txt
+        > "$COMBINED"
+        for f in core/target/surefire-reports/*.txt; do
+          echo "\n---- $f ----\n" >> "$COMBINED"
+          cat "$f" >> "$COMBINED"
+        done
+      shell: bash
 
-    - name: Upload test report
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
+    - name: Upload combined test summary
+      uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: Maven Tests
-        path: core/target/surefire-reports/*.xml
-        reporter: java-junit
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      if: matrix.java-version == '21'
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: core/target/site/jacoco/jacoco.xml
-        flags: jacoco
-        fail_ci_if_error: true
+        name: test-summary
+        path: core/target/surefire-reports/test-summary-${{ matrix.java-version }}.txt
