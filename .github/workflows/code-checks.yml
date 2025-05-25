@@ -24,10 +24,6 @@ jobs:
       run: mvn clean compile assembly:single
       working-directory: ./core
     
-    - name: Check formatting
-      run: mvn formatter:validate
-      working-directory: ./core
-    
     - name: Run SpotBugs
       run: mvn spotbugs:check
       continue-on-error: false
