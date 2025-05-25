@@ -29,20 +29,40 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     
     - name: Build
-      run: mvn clean compile assembly:single
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          clean compile assembly:single
       working-directory: ./core
     
     - name: Run tests
-      run: mvn test
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          test
       working-directory: ./core
       
     - name: Check code format
-      run: mvn spotless:check
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          spotless:check
       continue-on-error: true
       working-directory: ./core
     
     - name: Run SpotBugs
-      run: mvn spotbugs:check
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          spotbugs:check
       continue-on-error: true
       working-directory: ./core
     
@@ -53,9 +73,13 @@ jobs:
         name: spotbugs-report-java${{ matrix.java-version }}
         path: core/target/spotbugs*
         if-no-files-found: ignore
-        
     - name: Run Checkstyle
-      run: mvn checkstyle:check
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          checkstyle:check
       continue-on-error: true
       working-directory: ./core
       
@@ -68,7 +92,12 @@ jobs:
         if-no-files-found: ignore
         
     - name: Run PMD
-      run: mvn pmd:check
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          pmd:check
       continue-on-error: true
       working-directory: ./core
       
