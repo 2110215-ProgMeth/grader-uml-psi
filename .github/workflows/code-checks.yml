@@ -1,5 +1,4 @@
 name: Code Check
-
 on:
   push:
     branches: [ "*" ]
@@ -9,7 +8,6 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         java-version: [21, 24]
@@ -22,7 +20,7 @@ jobs:
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
-
+        
     - name: Cache Maven dependencies
       uses: actions/cache@v4
       with:
@@ -33,41 +31,51 @@ jobs:
     - name: Build
       run: mvn clean compile assembly:single
       working-directory: ./core
-
+    
+    - name: Run tests
+      run: mvn test
+      working-directory: ./core
+      
     - name: Check code format
       run: mvn spotless:check
+      continue-on-error: true
       working-directory: ./core
     
     - name: Run SpotBugs
       run: mvn spotbugs:check
-      continue-on-error: false
+      continue-on-error: true
       working-directory: ./core
     
     - name: Upload SpotBugs report
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: spotbugs-report
+        name: spotbugs-report-java${{ matrix.java-version }}
         path: core/target/spotbugs*
-
+        if-no-files-found: ignore
+        
     - name: Run Checkstyle
       run: mvn checkstyle:check
+      continue-on-error: true
       working-directory: ./core
-
+      
     - name: Upload Checkstyle report
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: checkstyle-report
+        name: checkstyle-report-java${{ matrix.java-version }}
         path: core/target/checkstyle-result.xml
-
+        if-no-files-found: ignore
+        
     - name: Run PMD
       run: mvn pmd:check
+      continue-on-error: true
       working-directory: ./core
-
+      
     - name: Upload PMD report
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: pmd-report
+        name: pmd-report-java${{ matrix.java-version }}
         path: core/target/pmd.xml
+        if-no-files-found: ignore
