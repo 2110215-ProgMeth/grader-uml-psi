@@ -41,8 +41,10 @@ jobs:
         COMBINED=core/target/surefire-reports/test-summary-${{ matrix.java-version }}.txt
         > "$COMBINED"
         for f in core/target/surefire-reports/*.txt; do
-          echo "\n---- $f ----\n" >> "$COMBINED"
-          cat "$f" >> "$COMBINED"
+          if [ "$f" != "$COMBINED" ]; then
+            echo "\n---- $f ----\n" >> "$COMBINED"
+            cat "$f" >> "$COMBINED"
+          fi
         done
       shell: bash
 
@@ -50,5 +52,5 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-summary
+        name: test-summary-${{ matrix.java-version }}
         path: core/target/surefire-reports/test-summary-${{ matrix.java-version }}.txt
