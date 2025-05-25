@@ -31,10 +31,12 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
 
     - name: Run tests
-      run: mvn clean test \
-        -Dmaven.compiler.release=${{ matrix.java-version }} \
-        -Dmaven.compiler.source=${{ matrix.java-version }} \
-        -Dmaven.compiler.target=${{ matrix.java-version }}
+      run: |
+        mvn \
+          -Dmaven.compiler.release=${{ matrix.java-version }} \
+          -Dmaven.compiler.source=${{ matrix.java-version }} \
+          -Dmaven.compiler.target=${{ matrix.java-version }} \
+          clean test
       working-directory: ./core
 
     - name: Generate CSV test summary
