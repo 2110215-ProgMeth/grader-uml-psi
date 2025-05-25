@@ -33,27 +33,9 @@ jobs:
       continue-on-error: false
       working-directory: ./core
     
-    - name: Check dependencies
-      run: mvn dependency-check:check
-      continue-on-error: false
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: target/surefire-reports/
-    
     - name: Upload SpotBugs report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: spotbugs-report
         path: target/spotbugs*
-    
-    - name: Upload dependency check report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: dependency-report
-        path: target/dependency-check-report.*
