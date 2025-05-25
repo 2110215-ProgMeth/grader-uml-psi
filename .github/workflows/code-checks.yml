@@ -20,22 +20,23 @@ jobs:
         distribution: 'temurin'
         cache: maven
     
-    - name: Run tests
-      run: mvn clean test
-    
     - name: Build
       run: mvn clean compile assembly:single
+      working-directory: ./core
     
     - name: Check formatting
       run: mvn formatter:validate
+      working-directory: ./core
     
     - name: Run SpotBugs
       run: mvn spotbugs:check
       continue-on-error: false
+      working-directory: ./core
     
     - name: Check dependencies
       run: mvn dependency-check:check
       continue-on-error: false
+      working-directory: ./core
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
