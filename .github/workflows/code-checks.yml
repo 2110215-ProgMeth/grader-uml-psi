@@ -36,7 +36,6 @@ jobs:
     - name: Check dependencies
       run: mvn dependency-check:check
       continue-on-error: false
-      working-directory: ./core
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
