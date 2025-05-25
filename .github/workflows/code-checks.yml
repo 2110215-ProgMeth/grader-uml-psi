@@ -71,14 +71,3 @@ jobs:
       with:
         name: pmd-report
         path: core/target/pmd.xml
-
-    - name: Generate code coverage report
-      run: mvn jacoco:report
-      working-directory: ./core
-
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: jacoco-report
-        path: core/target/site/jacoco
