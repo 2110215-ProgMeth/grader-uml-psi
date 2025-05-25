@@ -34,23 +34,30 @@ jobs:
       run: mvn clean test
       working-directory: ./core
 
-    - name: Combine test summaries
+    - name: Generate CSV test summary
       if: success() || failure()
       run: |
         mkdir -p core/target/surefire-reports
-        COMBINED=core/target/surefire-reports/test-summary-${{ matrix.java-version }}.txt
-        > "$COMBINED"
+        CSV=core/target/surefire-reports/result-java-${{ matrix.java-version }}.csv
+        echo "TestName,TestsRun,Failures,Errors,Skipped,TimeElapsedSeconds" > "$CSV"
         for f in core/target/surefire-reports/*.txt; do
-          if [ "$f" != "$COMBINED" ]; then
-            echo "\n---- $f ----\n" >> "$COMBINED"
-            cat "$f" >> "$COMBINED"
+          # skip the output file if re-run
+          if [ "$f" != "${CSV%.csv}.txt" ]; then
+            name=$(basename "$f" .txt)
+            summary=$(grep 'Tests run' "$f")
+            run=$(echo "$summary" | sed -E 's/.*Tests run: ([0-9]+),.*/\1/')
+            failures=$(echo "$summary" | sed -E 's/.*Failures: ([0-9]+),.*/\1/')
+            errors=$(echo "$summary" | sed -E 's/.*Errors: ([0-9]+),.*/\1/')
+            skipped=$(echo "$summary" | sed -E 's/.*Skipped: ([0-9]+),.*/\1/')
+            time=$(echo "$summary" | sed -E 's/.*Time elapsed: ([0-9.]+) s.*/\1/')
+            echo "$name,$run,$failures,$errors,$skipped,$time" >> "$CSV"
           fi
         done
       shell: bash
 
-    - name: Upload combined test summary
+    - name: Upload CSV test summary
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-summary-${{ matrix.java-version }}
-        path: core/target/surefire-reports/test-summary-${{ matrix.java-version }}.txt
+        name: result-java-${{ matrix.java-version }}
+        path: core/target/surefire-reports/result-java-${{ matrix.java-version }}.csv
