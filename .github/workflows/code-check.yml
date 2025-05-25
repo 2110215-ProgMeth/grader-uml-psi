@@ -23,32 +23,38 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-m2-${{ hashFiles('core/**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
     
     - name: Compile
       run: mvn clean compile test-compile
+      working-directory: ./core
     
     - name: Run Checkstyle
       run: mvn checkstyle:check
+      working-directory: ./core
       continue-on-error: true
     
     - name: Run SpotBugs
       run: mvn spotbugs:check
+      working-directory: ./core
       continue-on-error: true
     
     - name: Run PMD
       run: mvn pmd:check
+      working-directory: ./core
       continue-on-error: true
     
     - name: Dependency vulnerability check
       run: mvn org.owasp:dependency-check-maven:check
+      working-directory: ./core
       continue-on-error: true
     
     - name: Upload SpotBugs results
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
-        sarif_file: target/spotbugsXml.xml
+        sarif_file: core/target/spotbugsXml.xml
       continue-on-error: true
     
     - name: Archive analysis results
@@ -57,7 +63,7 @@ jobs:
       with:
         name: code-analysis-results
         path: |
-          target/checkstyle-result.xml
-          target/spotbugsXml.xml
-          target/pmd.xml
-          target/dependency-check-report.html
+          core/target/checkstyle-result.xml
+          core/target/spotbugsXml.xml
+          core/target/pmd.xml
+          core/target/dependency-check-report.html
