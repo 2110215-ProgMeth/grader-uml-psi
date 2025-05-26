@@ -11,12 +11,58 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:
         java-version: [21]
     
     steps:
+    - name: Wait for both workflows to complete
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const workflows = ['Code Check', 'Core Tests'];
+          const sha = '${{ github.sha }}';
+          
+          console.log(`Checking workflows for SHA: ${sha}`);
+          
+          // Get all workflows
+          const allWorkflows = await github.rest.actions.listRepoWorkflows({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          
+          for (const workflowName of workflows) {
+            console.log(`Checking ${workflowName}...`);
+            
+            // Find workflow by name
+            const workflow = allWorkflows.data.workflows.find(w => w.name === workflowName);
+            if (!workflow) {
+              throw new Error(`Workflow ${workflowName} not found`);
+            }
+            
+            // Get runs for this workflow
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflow.id,
+              head_sha: sha,
+              per_page: 1
+            });
+            
+            if (runs.data.workflow_runs.length === 0) {
+              throw new Error(`No runs found for ${workflowName}`);
+            }
+            
+            const run = runs.data.workflow_runs[0];
+            console.log(`${workflowName}: ${run.status} - ${run.conclusion}`);
+            
+            if (run.status !== 'completed' || run.conclusion !== 'success') {
+              throw new Error(`${workflowName} has not completed successfully`);
+            }
+          }
+          
+          console.log('✅ Both workflows completed successfully');
+          
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -41,43 +87,6 @@ jobs:
           -Dmaven.compiler.target=${{ matrix.java-version }} \
           clean package assembly:single
       working-directory: ./core
-      
-    - name: Create test file for comparison
-      run: |
-        mkdir -p test-comparison
-        cat > test-comparison/TestClass.java << 'EOF'
-        import java.util.List;
-        import java.io.Serializable;
-        
-        @Deprecated
-        public class TestClass implements Serializable {
-            private static final long serialVersionUID = 1L;
-            private String name;
-            public List<Integer> numbers;
-            
-            public TestClass(String name) {
-                this.name = name;
-            }
-            
-            public String getName() {
-                return name;
-            }
-            
-            public abstract static class InnerAbstract {
-                public abstract void process();
-            }
-            
-            public enum Status {
-                ACTIVE, INACTIVE
-            }
-        }
-        EOF
-        
-    - name: Test current JAR
-      run: |
-        java -jar core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar \
-          -o test-comparison/current-output.json \
-          test-comparison/TestClass.java
           
     - name: Get latest release
       id: get_release
@@ -91,7 +100,7 @@ jobs:
             });
             
             const asset = release.data.assets.find(asset => 
-              asset.name.includes('jar-with-dependencies.jar')
+              asset.name.includes('structure-extractor-psi-')
             );
             
             if (asset) {
@@ -107,40 +116,54 @@ jobs:
             return { exists: false };
           }
           
-    - name: Compare JAR outputs
-      id: compare_outputs
+    - name: Compare JAR files
+      id: compare_jars
       run: |
+        CURRENT_JAR="core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar"
+        CURRENT_SHA=$(sha256sum "$CURRENT_JAR" | cut -d' ' -f1)
+        echo "Current JAR SHA256: $CURRENT_SHA"
+        
         if [ "${{ fromJSON(steps.get_release.outputs.result).exists }}" == "true" ]; then
           echo "📥 Downloading previous JAR for comparison..."
           wget -O previous.jar "${{ fromJSON(steps.get_release.outputs.result).download_url }}"
           
-          java -jar previous.jar \
-            -o test-comparison/previous-output.json \
-            test-comparison/TestClass.java || echo "Previous JAR failed"
-            
-          if [ -f test-comparison/previous-output.json ]; then
-            if cmp -s test-comparison/current-output.json test-comparison/previous-output.json; then
-              echo "outputs_differ=false" >> $GITHUB_OUTPUT
-              echo "✅ JAR outputs are identical - no functional changes detected"
-            else
-              echo "outputs_differ=true" >> $GITHUB_OUTPUT
-              echo "🔄 JAR outputs differ - functional changes detected"
-              echo ""
-              echo "Differences:"
-              diff test-comparison/previous-output.json test-comparison/current-output.json || true
-            fi
+          PREVIOUS_SHA=$(sha256sum previous.jar | cut -d' ' -f1)
+          echo "Previous JAR SHA256: $PREVIOUS_SHA"
+          
+          if [ "$CURRENT_SHA" = "$PREVIOUS_SHA" ]; then
+            echo "jars_differ=false" >> $GITHUB_OUTPUT
+            echo "✅ JAR SHA256 hashes are identical - no changes detected"
           else
-            echo "outputs_differ=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Previous JAR failed to run - assuming changes needed"
+            echo "🔍 SHA256 hashes differ, checking content differences..."
+            
+            # Extract both JARs to compare contents
+            mkdir -p current_jar_content previous_jar_content
+            cd current_jar_content && jar -xf "../$CURRENT_JAR" && cd ..
+            cd previous_jar_content && jar -xf ../previous.jar && cd ..
+            
+            # Compare directory contents
+            if diff -rq current_jar_content previous_jar_content > /dev/null 2>&1; then
+              echo "jars_differ=false" >> $GITHUB_OUTPUT
+              echo "⚠️ SHA256 differs but content is identical (metadata/timestamp changes only)"
+            else
+              echo "jars_differ=true" >> $GITHUB_OUTPUT
+              echo "🔄 JAR content differs - functional changes detected"
+              echo ""
+              echo "Content differences:"
+              diff -rq current_jar_content previous_jar_content || true
+            fi
+            
+            # Cleanup
+            rm -rf current_jar_content previous_jar_content
           fi
         else
-          echo "outputs_differ=true" >> $GITHUB_OUTPUT
+          echo "jars_differ=true" >> $GITHUB_OUTPUT
           echo "🆕 No previous release found - first release needed"
         fi
         
     - name: Generate version number
       id: version
-      if: steps.compare_outputs.outputs.outputs_differ == 'true'
+      if: steps.compare_jars.outputs.jars_differ == 'true'
       run: |
         if [ "${{ fromJSON(steps.get_release.outputs.result).exists }}" == "true" ]; then
           LAST_TAG="${{ fromJSON(steps.get_release.outputs.result).tag }}"
@@ -148,21 +171,49 @@ jobs:
         else
           VERSION_NUMBER="1.0.0"
         fi
-        echo "version=$VERSION_NUMBER" >> $GITHUB_OUTPUT
-        echo "Generated version: $VERSION_NUMBER"
+        echo "version=v$VERSION_NUMBER" >> $GITHUB_OUTPUT
+        echo "Generated version: v$VERSION_NUMBER"
         
-    - name: Upload current JAR as artifact
-      if: steps.compare_outputs.outputs.outputs_differ == 'true'
-      uses: actions/upload-artifact@v4
+    - name: Create Release
+      id: create_release
+      if: steps.compare_jars.outputs.jars_differ == 'true'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: structure-extract-psi-v${{ steps.version.outputs.version }}
-        path: core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          Java Structure Extractor - Release ${{ steps.version.outputs.version }}
+          
+          ## Usage
+          ```bash
+          java -jar structure-extractor-psi-${{ steps.version.outputs.version }}.jar [-o output.json] [-t] input.java
+          ```
+          
+          ## Options
+          - `-o <file>`: Output JSON file (default: output.json)  
+          - `-t`: Only include true/non-empty values in output
+          
+        draft: false
+        prerelease: false
         
-    - name: Output comparison result
+    - name: Upload JAR to Release
+      if: steps.compare_jars.outputs.jars_differ == 'true'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
+        asset_name: structure-extract-psi-${{ steps.version.outputs.version }}.jar
+        asset_content_type: application/java-archive
+        
+    - name: Output result
       run: |
-        if [ "${{ steps.compare_outputs.outputs.outputs_differ }}" == "true" ]; then
-          echo "🚀 JAR is ready for release - functionality has changed"
-          echo "💾 JAR uploaded as: structure-extract-psi-v${{ steps.version.outputs.version }}"
+        if [ "${{ steps.compare_jars.outputs.jars_differ }}" == "true" ]; then
+          echo "🚀 New release created: ${{ steps.version.outputs.version }}"
+          echo "📦 JAR uploaded as: structure-extract-psi-${{ steps.version.outputs.version }}.jar"
         else
-          echo "⏭️ No release needed - JAR functionality unchanged"
+          echo "⏭️ No release needed - JAR contents unchanged"
         fi
