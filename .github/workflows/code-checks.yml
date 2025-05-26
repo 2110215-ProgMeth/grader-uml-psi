@@ -1,9 +1,9 @@
 name: Code Check
+
 on:
-  push:
-    branches: [ "*" ]
-  pull_request:
-    branches: [ "*" ]
+  workflow_run:
+    workflows: ["Core Tests"]
+    types: ["completed"]
 
 jobs:
   check:
