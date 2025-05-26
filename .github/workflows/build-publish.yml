@@ -72,23 +72,33 @@ jobs:
           echo "Current SHA: $SHA_CUR"
           RELEASE_INFO='${{ steps.get_release.outputs.result }}'
           EXISTS=$(jq -r .exists <<<"$RELEASE_INFO")
+
           if [ "$EXISTS" = "true" ]; then
             URL=$(jq -r .url <<<"$RELEASE_INFO")
+            echo "Fetching previous JAR from $URL"
             wget -qO prev.jar "$URL"
             SHA_PREV=$(sha256sum prev.jar | cut -d' ' -f1)
+            echo "Previous SHA: $SHA_PREV"
+
             if [ "$SHA_CUR" = "$SHA_PREV" ]; then
               echo "jars_differ=false" >> $GITHUB_OUTPUT
               exit 0
             fi
+
             mkdir cur prev
             (cd cur && jar xf "../$JAR")
             (cd prev && jar xf ../prev.jar)
+
             if diff -rq cur prev > /dev/null; then
               echo "jars_differ=false" >> $GITHUB_OUTPUT
             else
               echo "jars_differ=true" >> $GITHUB_OUTPUT
+              echo "🎯 JAR contents differ:"
+              diff -rq cur prev || true
             fi
+
           else
+            echo "No previous release—forcing new version"
             echo "jars_differ=true" >> $GITHUB_OUTPUT
           fi
 
