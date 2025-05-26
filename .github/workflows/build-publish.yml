@@ -67,16 +67,26 @@ jobs:
       - name: Compare JARs
         id: compare_jars
         run: |
+          set -e
+
           JAR=core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
           SHA_CUR=$(sha256sum "$JAR" | cut -d' ' -f1)
           echo "Current SHA: $SHA_CUR"
+
           RELEASE_INFO='${{ steps.get_release.outputs.result }}'
           EXISTS=$(jq -r .exists <<<"$RELEASE_INFO")
 
           if [ "$EXISTS" = "true" ]; then
             URL=$(jq -r .url <<<"$RELEASE_INFO")
             echo "Fetching previous JAR from $URL"
-            wget -qO prev.jar "$URL"
+
+            # try download, but if it fails, force a new release
+            if ! wget -qO prev.jar "$URL"; then
+              echo "⚠️ Failed to download previous JAR—forcing new version"
+              echo "jars_differ=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
             SHA_PREV=$(sha256sum prev.jar | cut -d' ' -f1)
             echo "Previous SHA: $SHA_PREV"
 
