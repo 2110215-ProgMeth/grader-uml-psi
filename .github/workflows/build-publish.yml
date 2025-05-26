@@ -55,16 +55,30 @@ jobs:
                 repo: context.repo.repo
               });
               const asset = rel.data.assets.find(a =>
-                a.name.endsWith('-jar-with-dependencies.jar')
+                a.name.startsWith('structure-extractor-') && a.name.endsWith('.jar')
               );
               return JSON.stringify({
-                exists: !!asset,
-                url: asset?.browser_download_url,
+                exists: Boolean(asset),
+                url: asset?.browser_download_url || '',
                 tag: rel.data.tag_name
               });
             } catch {
-              return JSON.stringify({ exists: false });
+              return JSON.stringify({ exists: false, url: '', tag: '' });
             }
+
+      - name: Show release status
+        shell: bash
+        run: |
+          INFO='${{ steps.get_release.outputs.result }}'
+          EXISTS=$(jq -r .exists <<<"$INFO")
+          TAG=$(jq -r .tag <<<"$INFO")
+          URL=$(jq -r .url <<<"$INFO")
+          if [ "$EXISTS" = "true" ]; then
+            echo "✅ Previous release found: tag=$TAG"
+            echo "🔗 JAR URL: $URL"
+          else
+            echo "⚠️ No previous JAR asset found in latest release"
+          fi
 
       - name: Compare JARs
         id: compare_jars
