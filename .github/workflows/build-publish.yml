@@ -9,6 +9,7 @@ on:
 
 jobs:
   build-and-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -46,15 +47,15 @@ jobs:
         with:
           script: |
             try {
-              const release = await github.rest.repos.getLatestRelease({
+              const rel = await github.rest.repos.getLatestRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo
               });
-              const asset = release.data.assets.find(a =>
+              const asset = rel.data.assets.find(a =>
                 a.name.includes('structure-extractor-psi-')
               );
               return asset
-                ? { exists: true, url: asset.browser_download_url, tag: release.data.tag_name }
+                ? { exists: true, url: asset.browser_download_url, tag: rel.data.tag_name }
                 : { exists: false };
             } catch {
               return { exists: false };
@@ -72,32 +73,53 @@ jobs:
             echo "Previous SHA: $SHA_PREV"
             if [ "$SHA_CUR" = "$SHA_PREV" ]; then
               echo "jars_differ=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            mkdir cur prev
+            (cd cur && jar xf ../"$JAR")
+            (cd prev && jar xf ../prev.jar)
+            if diff -rq cur prev > /dev/null; then
+              echo "jars_differ=false" >> $GITHUB_OUTPUT
             else
-              mkdir cur prev
-              (cd cur && jar xf ../"$JAR")
-              (cd prev && jar xf ../prev.jar)
-              if diff -rq cur prev > /dev/null; then
-                echo "jars_differ=false" >> $GITHUB_OUTPUT
-              else
-                echo "jars_differ=true" >> $GITHUB_OUTPUT
-                diff -rq cur prev || true
-              fi
+              echo "jars_differ=true" >> $GITHUB_OUTPUT
             fi
           else
             echo "jars_differ=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Generate version
+      - name: Compute next version tag
         id: version
         if: steps.compare_jars.outputs.jars_differ == 'true'
-        run: |
-          if [ "${{ fromJSON(steps.get_release.outputs.result).exists }}" = "true" ]; then
-            LAST_TAG=${{ fromJSON(steps.get_release.outputs.result).tag }}
-            NEW_VER=$(echo ${LAST_TAG#v} | awk -F. '{print $1"."$2"."($3+1)}')
-          else
-            NEW_VER="1.0.0"
-          fi
-          echo "version=v$NEW_VER" >> $GITHUB_OUTPUT
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            // Fetch up to 100 tags; adjust per_page if you have more
+            const tags = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            // Filter for semver-style vMAJOR.MINOR.PATCH
+            const semverTags = tags.data
+              .map(t => t.name)
+              .filter(n => /^v\d+\.\d+\.\d+$/.test(n))
+              .map(n => n.slice(1).split('.').map(Number));
+
+            // Determine highest
+            const highest = semverTags.length
+              ? semverTags.reduce((a, b) => {
+                  for (let i = 0; i < 3; i++) {
+                    if (b[i] > a[i]) return b;
+                    if (b[i] < a[i]) return a;
+                  }
+                  return a;
+                })
+              : [0, 0, 0];
+
+            // Bump patch
+            highest[2] += 1;
+            return `v${highest.join('.')}`;
 
       - name: Create Release
         if: steps.compare_jars.outputs.jars_differ == 'true'
@@ -105,14 +127,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          release_name: Release ${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.result }}
+          release_name: Release ${{ steps.version.outputs.result }}
           body: |
-            Java Structure Extractor - Release ${{ steps.version.outputs.version }}
+            Java Structure Extractor - Release ${{ steps.version.outputs.result }}
 
             ## Usage
             ```bash
-            java -jar structure-extractor-psi-${{ steps.version.outputs.version }}.jar [-o output.json] [-t] input.java
+            java -jar structure-extractor-psi-${{ steps.version.outputs.result }}.jar [-o output.json] [-t] input.java
             ```
 
             ## Options
@@ -127,13 +149,13 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
-          asset_name: structure-extractor-psi-${{ steps.version.outputs.version }}.jar
+          asset_name: structure-extractor-psi-${{ steps.version.outputs.result }}.jar
           asset_content_type: application/java-archive
 
       - name: Final output
         run: |
           if [ "${{ steps.compare_jars.outputs.jars_differ }}" = "true" ]; then
-            echo "🚀 Released ${{ steps.version.outputs.version }}"
+            echo "🚀 Released ${{ steps.version.outputs.result }}"
           else
             echo "⏭️ No release needed"
           fi
