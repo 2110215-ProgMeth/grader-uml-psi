@@ -144,8 +144,14 @@ jobs:
 
             ## Usage
             ```bash
-            java -jar structure-extractor-psi-${{ steps.version.outputs.result }}.jar [-o output.json] [-t] input.java
+            java -jar structure-extractor-${{ steps.version.outputs.result }}.jar [-o output.json] [-t] input.java
             ```
+
+      - name: Prepare release JAR
+        if: steps.compare_jars.outputs.jars_differ == 'true'
+        run: |
+          cp core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar \
+             structure-extractor-${{ steps.version.outputs.result }}.jar
 
       - name: Upload JAR
         if: steps.create_release.outputs.upload_url
@@ -154,8 +160,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
-          asset_name: psi-${{ steps.version.outputs.result }}-jar-with-dependencies.jar
+          asset_path: structure-extractor-${{ steps.version.outputs.result }}.jar
+          asset_name: structure-extractor-${{ steps.version.outputs.result }}.jar
           asset_content_type: application/java-archive
 
       - name: Final output
