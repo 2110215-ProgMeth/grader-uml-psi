@@ -45,21 +45,25 @@ jobs:
         id: get_release
         uses: actions/github-script@v7
         with:
+          result-encoding: string
           script: |
-            try {
-              const rel = await github.rest.repos.getLatestRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo
-              });
-              const asset = rel.data.assets.find(a =>
-                a.name.includes('structure-extractor-psi-')
-              );
-              return asset
-                ? { exists: true, url: asset.browser_download_url, tag: rel.data.tag_name }
-                : { exists: false };
-            } catch {
-              return { exists: false };
+            // Retrieve the latest release
+            const rel = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            // Find the JAR asset in that release
+            const asset = rel.data.assets.find(a =>
+              a.name.endsWith('-jar-with-dependencies.jar')
+            );
+            if (!asset) {
+              return JSON.stringify({ exists: false });
             }
+            return JSON.stringify({
+              exists: true,
+              download_url: asset.browser_download_url,
+              tag: rel.data.tag_name
+            });
 
       - name: Compare JARs
         id: compare_jars
@@ -67,8 +71,12 @@ jobs:
           JAR=core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
           SHA_CUR=$(sha256sum "$JAR" | cut -d' ' -f1)
           echo "Current SHA: $SHA_CUR"
-          if [ "${{ fromJSON(steps.get_release.outputs.result).exists }}" = "true" ]; then
-            wget -qO prev.jar "${{ fromJSON(steps.get_release.outputs.result).url }}"
+          RELEASE_INFO=$(echo '${{ steps.get_release.outputs.result }}' | jq -r .)
+          EXISTS=$(jq -r .exists <<<"$RELEASE_INFO")
+          if [ "$EXISTS" = "true" ]; then
+            URL=$(jq -r .download_url <<<"$RELEASE_INFO")
+            echo "Fetching previous JAR from $URL"
+            wget -qO prev.jar "$URL"
             SHA_PREV=$(sha256sum prev.jar | cut -d' ' -f1)
             echo "Previous SHA: $SHA_PREV"
             if [ "$SHA_CUR" = "$SHA_PREV" ]; then
@@ -76,7 +84,7 @@ jobs:
               exit 0
             fi
             mkdir cur prev
-            (cd cur && jar xf ../"$JAR")
+            (cd cur && jar xf "../$JAR")
             (cd prev && jar xf ../prev.jar)
             if diff -rq cur prev > /dev/null; then
               echo "jars_differ=false" >> $GITHUB_OUTPUT
@@ -84,6 +92,7 @@ jobs:
               echo "jars_differ=true" >> $GITHUB_OUTPUT
             fi
           else
+            echo "No previous release—forcing new version"
             echo "jars_differ=true" >> $GITHUB_OUTPUT
           fi
 
@@ -94,21 +103,17 @@ jobs:
         with:
           result-encoding: string
           script: |
-            // Fetch up to 100 tags; adjust per_page if you have more
             const tags = await github.rest.repos.listTags({
               owner: context.repo.owner,
               repo: context.repo.repo,
               per_page: 100
             });
-            // Filter for semver-style vMAJOR.MINOR.PATCH
-            const semverTags = tags.data
+            const semver = tags.data
               .map(t => t.name)
               .filter(n => /^v\d+\.\d+\.\d+$/.test(n))
               .map(n => n.slice(1).split('.').map(Number));
-
-            // Determine highest
-            const highest = semverTags.length
-              ? semverTags.reduce((a, b) => {
+            const highest = semver.length
+              ? semver.reduce((a, b) => {
                   for (let i = 0; i < 3; i++) {
                     if (b[i] > a[i]) return b;
                     if (b[i] < a[i]) return a;
@@ -116,8 +121,6 @@ jobs:
                   return a;
                 })
               : [0, 0, 0];
-
-            // Bump patch
             highest[2] += 1;
             return `v${highest.join('.')}`;
 
@@ -149,7 +152,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: core/target/psi-1.0-SNAPSHOT-jar-with-dependencies.jar
-          asset_name: structure-extractor-psi-${{ steps.version.outputs.result }}.jar
+          asset_name: psi-${{ steps.version.outputs.result }}-jar-with-dependencies.jar
           asset_content_type: application/java-archive
 
       - name: Final output
