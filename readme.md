@@ -5,9 +5,10 @@ A tool for extracting structural information from Java source files and converti
 ## Quick Start
 
 ### Download Latest Release
+See the Release section for pre-build jarfile (Java 21)
 ```bash
-wget https://github.com/your-repo/java-structure-extractor/releases/latest/download/structure-extractor-latest.jar
-java -jar structure-extractor-latest.jar MyClass.java
+wget https://github.com/your-repo/java-structure-extractor/releases/latest/download/structure-extractor-<version>.jar
+java -jar structure-extractor-<version>.jar MyClass.java
 ```
 
 ### Build Your Own
@@ -37,7 +38,7 @@ This tool parses Java source code and extracts structural elements including:
 ## Installation
 
 ### Prerequisites
-- Java 21+ (or build your own with mvn or build.py)
+- Java 21+
 - Python 3.8+ (for main script)
 - Docker (for automated grading)
 
@@ -208,7 +209,7 @@ mvn spotbugs:check
 mvn pmd:check
 ```
 
-### Supported Tested Java Versions
+### Supported Java Versions
 - Java 11
 - Java 17  
 - Java 21
@@ -246,4 +247,4 @@ java-structure-extractor/
 
 ## Contributing
 
-Contribution to this project is encouraged.
+Contribution to this project is encouraged. Feel free to create issues and pull requests for your invaluable contributions.
