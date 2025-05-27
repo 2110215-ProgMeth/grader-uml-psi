@@ -9,6 +9,7 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -44,7 +45,7 @@ public class StructureExtractor {
 
 			for (int i = 0; i < args.length; i++) {
 				switch (args[i]) {
-					case "-o" :
+					case "-o":
 						if (i + 1 < args.length) {
 							outputPath = args[++i];
 						} else {
@@ -52,10 +53,10 @@ public class StructureExtractor {
 							throw new SecurityException("-o requires a filename");
 						}
 						break;
-					case "-t" :
+					case "-t":
 						onlyTrue = true;
 						break;
-					default :
+					default:
 						inputPath = args[i];
 				}
 			}
@@ -283,7 +284,14 @@ public class StructureExtractor {
 			}
 			c.set("params", pNode);
 			ArrayNode throwsNode = mapper.createArrayNode();
-			ctor.getThrownExceptions().forEach(te -> throwsNode.add(te.asString()));
+			for (ReferenceType te : ctor.getThrownExceptions()) {
+				String full = te.asString();
+				String simple = full.contains(".")
+						? full.substring(full.lastIndexOf('.') + 1)
+						: full;
+				throwsNode.add(simple);
+			}
+
 			c.set("throws", throwsNode);
 			constructorsNode.add(c);
 		}
@@ -310,9 +318,13 @@ public class StructureExtractor {
 				m.put("public", isInterface || method.hasModifier(Modifier.Keyword.PUBLIC));
 				m.put("protected", method.hasModifier(Modifier.Keyword.PROTECTED));
 				m.put("private", method.hasModifier(Modifier.Keyword.PRIVATE));
-				boolean ifaceAbstract = isInterface && !method.hasModifier(Modifier.Keyword.DEFAULT)
-						&& !method.hasModifier(Modifier.Keyword.STATIC);
-				m.put("abstract", ifaceAbstract || method.hasModifier(Modifier.Keyword.ABSTRACT));
+
+				boolean explicitAbs = method.hasModifier(Modifier.Keyword.ABSTRACT);
+				boolean implicitAbs = isInterface &&
+						!method.hasModifier(Modifier.Keyword.DEFAULT) &&
+						!method.hasModifier(Modifier.Keyword.STATIC);
+				m.put("abstract", explicitAbs || implicitAbs);
+
 				m.put("static", method.hasModifier(Modifier.Keyword.STATIC));
 				m.put("final", method.hasModifier(Modifier.Keyword.FINAL));
 				m.put("synchronized", method.hasModifier(Modifier.Keyword.SYNCHRONIZED));
@@ -327,7 +339,13 @@ public class StructureExtractor {
 				}
 				m.set("params", paramsNode);
 				ArrayNode throwsNode = mapper.createArrayNode();
-				method.getThrownExceptions().forEach(te -> throwsNode.add(te.asString()));
+				for (ReferenceType thr : method.getThrownExceptions()) {
+					String full = thr.asString();
+					String simple = full.contains(".")
+							? full.substring(full.lastIndexOf('.') + 1)
+							: full;
+					throwsNode.add(simple);
+				}
 				m.set("throws", throwsNode);
 				methodsNode.add(m);
 			}
