@@ -7,7 +7,7 @@ A tool for extracting structural information from Java source files and converti
 ### Download Latest Release
 See the Release section for pre-build jarfile (Java 21)
 ```bash
-wget https://github.com/your-repo/java-structure-extractor/releases/latest/download/structure-extractor-<version>.jar
+wget https://github.com/2110215-ProgMeth/grader-uml-psi/releases/latest/download/structure-extractor-<version>.jar
 java -jar structure-extractor-<version>.jar MyClass.java
 ```
 
@@ -44,7 +44,7 @@ This tool parses Java source code and extracts structural elements including:
 
 ### Setup
 ```bash
-git clone https://github.com/your-repo/java-structure-extractor
+git clone https://github.com/2110215-ProgMeth/grader-uml-psi
 cd java-structure-extractor
 pip install -r requirements.txt
 ```
