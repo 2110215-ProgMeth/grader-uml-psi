@@ -38,10 +38,8 @@ public class InterfaceAbstractTest {
 
 	@Test
 	void testInterfaceMethodsAreAbstract() throws Exception {
-		String javaCode = "public interface Mergeable {\n" +
-				"    boolean merge(String source, String target);\n" +
-				"    void resolveConflict(String path, String resolution);\n" +
-				"}";
+		String javaCode = "public interface Mergeable {\n" + "    boolean merge(String source, String target);\n"
+				+ "    void resolveConflict(String path, String resolution);\n" + "}";
 		File inputFile = createTempJavaFile("Mergeable.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -49,13 +47,13 @@ public class InterfaceAbstractTest {
 
 		JsonNode result = mapper.readTree(Files.readString(outputFile));
 		assertEquals("Interface", result.get("kind").asText());
-		
+
 		JsonNode methods = result.get("methods");
 		assertEquals(2, methods.size());
 
 		for (JsonNode method : methods) {
-			assertTrue(method.get("abstract").asBoolean(), 
-				"Interface method '" + method.get("name").asText() + "' should be abstract");
+			assertTrue(method.get("abstract").asBoolean(),
+					"Interface method '" + method.get("name").asText() + "' should be abstract");
 			assertFalse(method.get("default").asBoolean());
 			assertFalse(method.get("static").asBoolean());
 		}
@@ -63,11 +61,9 @@ public class InterfaceAbstractTest {
 
 	@Test
 	void testInterfaceWithDefaultMethodsNotAbstract() throws Exception {
-		String javaCode = "public interface Service {\n" +
-				"    void process();\n" +
-				"    default void initialize() { System.out.println(\"init\"); }\n" +
-				"    static void utility() { System.out.println(\"util\"); }\n" +
-				"}";
+		String javaCode = "public interface Service {\n" + "    void process();\n"
+				+ "    default void initialize() { System.out.println(\"init\"); }\n"
+				+ "    static void utility() { System.out.println(\"util\"); }\n" + "}";
 		File inputFile = createTempJavaFile("Service.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -98,10 +94,8 @@ public class InterfaceAbstractTest {
 
 	@Test
 	void testClassMethodsNotAbstractByDefault() throws Exception {
-		String javaCode = "public class ConcreteClass {\n" +
-				"    public void regularMethod() {}\n" +
-				"    private String getInfo() { return \"info\"; }\n" +
-				"}";
+		String javaCode = "public class ConcreteClass {\n" + "    public void regularMethod() {}\n"
+				+ "    private String getInfo() { return \"info\"; }\n" + "}";
 		File inputFile = createTempJavaFile("ConcreteClass.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -109,22 +103,20 @@ public class InterfaceAbstractTest {
 
 		JsonNode result = mapper.readTree(Files.readString(outputFile));
 		assertEquals("Class", result.get("kind").asText());
-		
+
 		JsonNode methods = result.get("methods");
 		assertEquals(2, methods.size());
 
 		for (JsonNode method : methods) {
-			assertFalse(method.get("abstract").asBoolean(), 
-				"Regular class method '" + method.get("name").asText() + "' should not be abstract");
+			assertFalse(method.get("abstract").asBoolean(),
+					"Regular class method '" + method.get("name").asText() + "' should not be abstract");
 		}
 	}
 
 	@Test
 	void testAbstractClassWithAbstractMethods() throws Exception {
-		String javaCode = "public abstract class AbstractProcessor {\n" +
-				"    public abstract void process();\n" +
-				"    public void concreteMethod() {}\n" +
-				"}";
+		String javaCode = "public abstract class AbstractProcessor {\n" + "    public abstract void process();\n"
+				+ "    public void concreteMethod() {}\n" + "}";
 		File inputFile = createTempJavaFile("AbstractProcessor.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -133,7 +125,7 @@ public class InterfaceAbstractTest {
 		JsonNode result = mapper.readTree(Files.readString(outputFile));
 		assertEquals("Class", result.get("kind").asText());
 		assertTrue(result.get("abstract").asBoolean());
-		
+
 		JsonNode methods = result.get("methods");
 		assertEquals(2, methods.size());
 
@@ -148,13 +140,10 @@ public class InterfaceAbstractTest {
 
 	@Test
 	void testAllMethodsHaveThrowsArray() throws Exception {
-		String javaCode = "import java.io.IOException;\n" +
-				"public interface FileProcessor {\n" +
-				"    void processFile(String path) throws IOException;\n" +
-				"    void simpleMethod();\n" +
-				"    default void defaultMethod() throws RuntimeException {}\n" +
-				"    static void staticMethod() {}\n" +
-				"}";
+		String javaCode = "import java.io.IOException;\n" + "public interface FileProcessor {\n"
+				+ "    void processFile(String path) throws IOException;\n" + "    void simpleMethod();\n"
+				+ "    default void defaultMethod() throws RuntimeException {}\n"
+				+ "    static void staticMethod() {}\n" + "}";
 		File inputFile = createTempJavaFile("FileProcessor.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -165,10 +154,9 @@ public class InterfaceAbstractTest {
 		assertEquals(4, methods.size());
 
 		for (JsonNode method : methods) {
-			assertTrue(method.has("throws"), 
-				"Method '" + method.get("name").asText() + "' must have 'throws' array");
-			assertTrue(method.get("throws").isArray(), 
-				"'throws' must be an array for method '" + method.get("name").asText() + "'");
+			assertTrue(method.has("throws"), "Method '" + method.get("name").asText() + "' must have 'throws' array");
+			assertTrue(method.get("throws").isArray(),
+					"'throws' must be an array for method '" + method.get("name").asText() + "'");
 		}
 
 		JsonNode methodWithException = methods.get(0);
@@ -192,12 +180,10 @@ public class InterfaceAbstractTest {
 
 	@Test
 	void testConstructorsHaveThrowsArray() throws Exception {
-		String javaCode = "import java.io.IOException;\n" +
-				"public class FileHandler {\n" +
-				"    public FileHandler() {}\n" +
-				"    public FileHandler(String path) throws IOException {}\n" +
-				"    private FileHandler(String path, boolean create) throws IOException, IllegalArgumentException {}\n" +
-				"}";
+		String javaCode = "import java.io.IOException;\n" + "public class FileHandler {\n"
+				+ "    public FileHandler() {}\n" + "    public FileHandler(String path) throws IOException {}\n"
+				+ "    private FileHandler(String path, boolean create) throws IOException, IllegalArgumentException {}\n"
+				+ "}";
 		File inputFile = createTempJavaFile("FileHandler.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -208,10 +194,8 @@ public class InterfaceAbstractTest {
 		assertEquals(3, constructors.size());
 
 		for (JsonNode constructor : constructors) {
-			assertTrue(constructor.has("throws"), 
-				"Constructor must have 'throws' array");
-			assertTrue(constructor.get("throws").isArray(), 
-				"'throws' must be an array for constructor");
+			assertTrue(constructor.has("throws"), "Constructor must have 'throws' array");
+			assertTrue(constructor.get("throws").isArray(), "'throws' must be an array for constructor");
 		}
 
 		JsonNode defaultConstructor = constructors.get(0);
@@ -229,20 +213,14 @@ public class InterfaceAbstractTest {
 
 	@Test
 	void testComplexInterfaceScenario() throws Exception {
-		String javaCode = "import java.util.List;\n" +
-				"import java.util.function.Consumer;\n" +
-				"public interface Trackable {\n" +
-				"    void trackFile(String path) throws Exception, java.io.IOException;\n" +
-				"    void untrackFile(String path);\n" +
-				"    List<String> getTrackedFiles();\n" +
-				"    void addFileChangeListener(Consumer<String> listener);\n" +
-				"    default void log(String message) {\n" +
-				"        System.out.println(message);\n" +
-				"    }\n" +
-				"    static boolean isValidPath(String path) {\n" +
-				"        return path != null && !path.isEmpty();\n" +
-				"    }\n" +
-				"}";
+		String javaCode = "import java.util.List;\n" + "import java.util.function.Consumer;\n"
+				+ "public interface Trackable {\n"
+				+ "    void trackFile(String path) throws Exception, java.io.IOException;\n"
+				+ "    void untrackFile(String path);\n" + "    List<String> getTrackedFiles();\n"
+				+ "    void addFileChangeListener(Consumer<String> listener);\n"
+				+ "    default void log(String message) {\n" + "        System.out.println(message);\n" + "    }\n"
+				+ "    static boolean isValidPath(String path) {\n"
+				+ "        return path != null && !path.isEmpty();\n" + "    }\n" + "}";
 		File inputFile = createTempJavaFile("Trackable.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -250,7 +228,7 @@ public class InterfaceAbstractTest {
 
 		JsonNode result = mapper.readTree(Files.readString(outputFile));
 		assertEquals("Interface", result.get("kind").asText());
-		
+
 		JsonNode methods = result.get("methods");
 		assertEquals(6, methods.size());
 
@@ -301,21 +279,18 @@ public class InterfaceAbstractTest {
 
 		JsonNode result = mapper.readTree(Files.readString(outputFile));
 		assertEquals("Interface", result.get("kind").asText());
-		
+
 		JsonNode methods = result.get("methods");
 		assertEquals(0, methods.size());
-		
+
 		JsonNode fields = result.get("fields");
 		assertEquals(0, fields.size());
 	}
 
 	@Test
 	void testInterfaceWithConstants() throws Exception {
-		String javaCode = "public interface Constants {\n" +
-				"    String DEFAULT_NAME = \"test\";\n" +
-				"    int MAX_SIZE = 100;\n" +
-				"    void process();\n" +
-				"}";
+		String javaCode = "public interface Constants {\n" + "    String DEFAULT_NAME = \"test\";\n"
+				+ "    int MAX_SIZE = 100;\n" + "    void process();\n" + "}";
 		File inputFile = createTempJavaFile("Constants.java", javaCode);
 		Path outputFile = tempDir.resolve("output.json");
 
@@ -323,16 +298,16 @@ public class InterfaceAbstractTest {
 
 		JsonNode result = mapper.readTree(Files.readString(outputFile));
 		assertEquals("Interface", result.get("kind").asText());
-		
+
 		JsonNode fields = result.get("fields");
 		assertEquals(2, fields.size());
-		
+
 		for (JsonNode field : fields) {
 			assertTrue(field.get("public").asBoolean());
 			assertTrue(field.get("static").asBoolean());
 			assertTrue(field.get("final").asBoolean());
 		}
-		
+
 		JsonNode methods = result.get("methods");
 		assertEquals(1, methods.size());
 		JsonNode processMethod = methods.get(0);

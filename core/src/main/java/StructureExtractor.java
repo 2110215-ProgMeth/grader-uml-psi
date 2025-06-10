@@ -45,7 +45,7 @@ public class StructureExtractor {
 
 			for (int i = 0; i < args.length; i++) {
 				switch (args[i]) {
-					case "-o":
+					case "-o" :
 						if (i + 1 < args.length) {
 							outputPath = args[++i];
 						} else {
@@ -53,10 +53,10 @@ public class StructureExtractor {
 							throw new SecurityException("-o requires a filename");
 						}
 						break;
-					case "-t":
+					case "-t" :
 						onlyTrue = true;
 						break;
-					default:
+					default :
 						inputPath = args[i];
 				}
 			}
@@ -286,9 +286,7 @@ public class StructureExtractor {
 			ArrayNode throwsNode = mapper.createArrayNode();
 			for (ReferenceType te : ctor.getThrownExceptions()) {
 				String full = te.asString();
-				String simple = full.contains(".")
-						? full.substring(full.lastIndexOf('.') + 1)
-						: full;
+				String simple = full.contains(".") ? full.substring(full.lastIndexOf('.') + 1) : full;
 				throwsNode.add(simple);
 			}
 
@@ -320,9 +318,8 @@ public class StructureExtractor {
 				m.put("private", method.hasModifier(Modifier.Keyword.PRIVATE));
 
 				boolean explicitAbs = method.hasModifier(Modifier.Keyword.ABSTRACT);
-				boolean implicitAbs = isInterface &&
-						!method.hasModifier(Modifier.Keyword.DEFAULT) &&
-						!method.hasModifier(Modifier.Keyword.STATIC);
+				boolean implicitAbs = isInterface && !method.hasModifier(Modifier.Keyword.DEFAULT)
+						&& !method.hasModifier(Modifier.Keyword.STATIC);
 				m.put("abstract", explicitAbs || implicitAbs);
 
 				m.put("static", method.hasModifier(Modifier.Keyword.STATIC));
@@ -341,9 +338,7 @@ public class StructureExtractor {
 				ArrayNode throwsNode = mapper.createArrayNode();
 				for (ReferenceType thr : method.getThrownExceptions()) {
 					String full = thr.asString();
-					String simple = full.contains(".")
-							? full.substring(full.lastIndexOf('.') + 1)
-							: full;
+					String simple = full.contains(".") ? full.substring(full.lastIndexOf('.') + 1) : full;
 					throwsNode.add(simple);
 				}
 				m.set("throws", throwsNode);
